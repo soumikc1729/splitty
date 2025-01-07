@@ -1,0 +1,10 @@
+server:
+  port: 4000
+  idle-timeout: 1m
+  read-timeout: 10s
+  write-timeout: 30s
+  shutdown-timeout: 5s
+logger:
+  level: info
+  writers:
+    - console
