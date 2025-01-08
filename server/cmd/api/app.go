@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/rs/zerolog"
+	"github.com/soumikc1729/splitty/server/internal/db"
 	"github.com/soumikc1729/splitty/server/internal/logger"
 	"github.com/soumikc1729/splitty/server/internal/server"
 )
@@ -9,6 +10,7 @@ import (
 type Config struct {
 	Server server.Config `mapstructure:"server"`
 	Logger logger.Config `mapstructure:"logger"`
+	DB     db.Config     `mapstructure:"db"`
 }
 
 type App struct {

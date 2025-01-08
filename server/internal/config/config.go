@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -9,6 +10,8 @@ import (
 func Load[T any](configName, configPath string) (*T, error) {
 	viper.SetConfigName(configName)
 	viper.AddConfigPath(configPath)
+
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {

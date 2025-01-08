@@ -8,3 +8,9 @@ logger:
   level: info
   writers:
     - console
+db:
+  query-timeout: 3s
+  max-open-conns: 25
+  max-idle-conns: 25
+  idle-timeout: 15m
+  ping-timeout: 5s
