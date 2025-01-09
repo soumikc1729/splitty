@@ -8,7 +8,7 @@ logger:
   level: info
   writers:
     - console
-db:
+data:
   query-timeout: 3s
   max-open-conns: 25
   max-idle-conns: 25

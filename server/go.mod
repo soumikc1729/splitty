@@ -4,6 +4,7 @@ go 1.23.4
 
 require (
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/viper v1.19.0

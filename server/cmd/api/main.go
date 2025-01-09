@@ -23,6 +23,6 @@ func main() {
 	}
 
 	if err := app.Serve(); err != nil {
-		app.Logger.Error().Err(err).Msg("failed to start server")
+		app.Logger.Err(err).Msg("failed to start server")
 	}
 }

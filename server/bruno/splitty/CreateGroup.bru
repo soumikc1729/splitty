@@ -1,0 +1,18 @@
+meta {
+  name: CreateGroup
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:4000/v1/groups
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Trip",
+    "users": ["Soumik", "Paulomi"]
+  }
+}

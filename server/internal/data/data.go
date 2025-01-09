@@ -1,4 +1,4 @@
-package db
+package data
 
 import (
 	"context"
@@ -12,7 +12,7 @@ var (
 )
 
 type Config struct {
-	DSN          string        `mapstructure:"dsn"`
+	DSN          string        `envconfig:"DSN"`
 	QueryTimeout time.Duration `mapstructure:"query-timeout"`
 	MaxOpenConns int           `mapstructure:"max-open-conns"`
 	MaxIdleConns int           `mapstructure:"max-idle-conns"`
@@ -20,13 +20,8 @@ type Config struct {
 	PingTimeout  time.Duration `mapstructure:"ping-timeout"`
 }
 
-type Models struct {
-	Groups GroupModel
-}
-
 type Data struct {
-	Config *Config
-	Models Models
+	Groups GroupModel
 }
 
 func New(cfg *Config) (*Data, error) {
@@ -36,10 +31,7 @@ func New(cfg *Config) (*Data, error) {
 	}
 
 	data := Data{
-		Config: cfg,
-		Models: Models{
-			Groups: GroupModel{DB: db},
-		},
+		Groups: GroupModel{DB: db},
 	}
 
 	return &data, nil

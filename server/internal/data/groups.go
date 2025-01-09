@@ -1,4 +1,4 @@
-package db
+package data
 
 import (
 	"context"
@@ -25,8 +25,6 @@ type Group struct {
 
 func ValidateGroup(v *validator.Validator, group *Group) {
 	v.Check(validator.Matches(group.Name, ShortTextRX), "name", "must be 3-50 characters long and contain only letters, numbers, spaces, hyphens, and underscores")
-
-	ValidateToken(v, group.Token)
 
 	v.Check(validator.Unique(group.Users), "users", "must not contain duplicate values")
 	v.Check(len(group.Users) >= 2, "users", "must contain at least two values")

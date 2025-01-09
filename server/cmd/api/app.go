@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/rs/zerolog"
-	"github.com/soumikc1729/splitty/server/internal/db"
+	"github.com/soumikc1729/splitty/server/internal/data"
 	"github.com/soumikc1729/splitty/server/internal/logger"
 	"github.com/soumikc1729/splitty/server/internal/server"
 )
@@ -10,12 +10,13 @@ import (
 type Config struct {
 	Server server.Config `mapstructure:"server"`
 	Logger logger.Config `mapstructure:"logger"`
-	DB     db.Config     `mapstructure:"db"`
+	Data   data.Config   `mapstructure:"data"`
 }
 
 type App struct {
 	Config *Config
 	Logger *zerolog.Logger
+	Data   *data.Data
 }
 
 func NewApp(cfg *Config) (*App, error) {
@@ -24,7 +25,12 @@ func NewApp(cfg *Config) (*App, error) {
 		return nil, err
 	}
 
-	return &App{Config: cfg, Logger: logger}, nil
+	data, err := data.New(&cfg.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	return &App{Config: cfg, Logger: logger, Data: data}, nil
 }
 
 func (app *App) Serve() error {
