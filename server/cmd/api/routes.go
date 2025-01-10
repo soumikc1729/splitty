@@ -13,6 +13,7 @@ func (app *App) Routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(app.MethodNotAllowedResponse)
 
 	router.HandlerFunc(http.MethodPost, "/v1/groups", app.CreateGroupHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/groups/:id", app.GetGroupHandler)
 
 	return router
 }
