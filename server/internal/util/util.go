@@ -81,3 +81,12 @@ func ReadJSON(r *http.Request, dst interface{}) error {
 
 	return nil
 }
+
+func ContainsString(item string, slice []string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}

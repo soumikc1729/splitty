@@ -40,3 +40,7 @@ func (app *App) FailedValidationResponse(w http.ResponseWriter, r *http.Request,
 func (app *App) ServerErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.ErrorResponse(w, r, http.StatusInternalServerError, err.Error())
 }
+
+func (app *App) EditConflictResponse(w http.ResponseWriter, r *http.Request) {
+	app.ErrorResponse(w, r, http.StatusConflict, "unable to update the record due to an edit conflict, please try again")
+}

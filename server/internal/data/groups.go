@@ -20,7 +20,7 @@ type Group struct {
 	Name    string   `json:"name"`
 	Token   string   `json:"token"`
 	Users   []string `json:"users"`
-	Version int      `json:"version"`
+	Version int      `json:"-"`
 }
 
 func ValidateGroup(v *validator.Validator, group *Group) {
@@ -100,10 +100,10 @@ func (m GroupModel) Update(group *Group, timeout time.Duration) error {
 	query := `
 		UPDATE groups
 		SET name = $1, users = $2, version = version + 1
-		WHERE id = $3 AND version = $4
+		WHERE id = $3 AND token = $4 AND version = $5
 		RETURNING version`
 
-	args := []interface{}{group.Name, pq.Array(group.Users), group.ID, group.Version}
+	args := []interface{}{group.Name, pq.Array(group.Users), group.ID, group.Token, group.Version}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -112,7 +112,7 @@ func (m GroupModel) Update(group *Group, timeout time.Duration) error {
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			return ErrRecordNotFound
+			return ErrEditConflict
 		default:
 			return err
 		}

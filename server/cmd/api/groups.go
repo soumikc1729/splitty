@@ -73,7 +73,12 @@ func (app *App) GetGroupHandler(w http.ResponseWriter, r *http.Request) {
 
 	group, err := app.Data.Groups.GetByIDAndToken(id, token, app.Config.Data.QueryTimeout)
 	if err != nil {
-		app.ServerErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.NotFoundResponse(w, r)
+		default:
+			app.ServerErrorResponse(w, r, err)
+		}
 		return
 	}
 
@@ -84,6 +89,128 @@ func (app *App) GetGroupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.Logger.Info().Int64("id", group.ID).Msg("retrieved group")
+}
+
+func (app *App) UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := readID(r)
+	if err != nil {
+		app.BadRequestResponse(w, r, err)
+		return
+	}
+
+	token, err := readToken(r)
+	if err != nil {
+		app.BadRequestResponse(w, r, err)
+		return
+	}
+
+	v := validator.New()
+
+	if data.ValidateToken(v, token); !v.Valid() {
+		app.FailedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	group, err := app.Data.Groups.GetByIDAndToken(id, token, app.Config.Data.QueryTimeout)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.NotFoundResponse(w, r)
+		default:
+			app.ServerErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	var input struct {
+		Name  *string  `json:"name"`
+		Users []string `json:"users"`
+	}
+
+	err = util.ReadJSON(r, &input)
+	if err != nil {
+		app.BadRequestResponse(w, r, err)
+		return
+	}
+
+	if input.Name != nil {
+		group.Name = *input.Name
+	}
+
+	if input.Users != nil {
+		for _, user := range group.Users {
+			v.Check(validator.In(user, input.Users...), "users", fmt.Sprintf("cannot remove user '%s'", user))
+		}
+
+		if !v.Valid() {
+			app.FailedValidationResponse(w, r, v.Errors)
+			return
+		}
+
+		group.Users = input.Users
+	}
+
+	if data.ValidateGroup(v, group); !v.Valid() {
+		app.FailedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	err = app.Data.Groups.Update(group, app.Config.Data.QueryTimeout)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.EditConflictResponse(w, r)
+		default:
+			app.ServerErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = util.WriteJSON(w, http.StatusOK, util.Envelope{"group": group}, nil)
+	if err != nil {
+		app.ServerErrorResponse(w, r, err)
+	}
+
+	app.Logger.Info().Int64("id", group.ID).Msg("updated group")
+}
+
+func (app *App) DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := readID(r)
+	if err != nil {
+		app.BadRequestResponse(w, r, err)
+		return
+	}
+
+	token, err := readToken(r)
+	if err != nil {
+		app.BadRequestResponse(w, r, err)
+		return
+	}
+
+	v := validator.New()
+
+	if data.ValidateToken(v, token); !v.Valid() {
+		app.FailedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	err = app.Data.Groups.Delete(id, token, app.Config.Data.QueryTimeout)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.NotFoundResponse(w, r)
+		default:
+			app.ServerErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = util.WriteJSON(w, http.StatusOK, util.Envelope{"message": "group successfully deleted"}, nil)
+	if err != nil {
+		app.ServerErrorResponse(w, r, err)
+	}
+
+	app.Logger.Info().Int64("id", id).Msg("deleted group")
 }
 
 func readID(r *http.Request) (int64, error) {
