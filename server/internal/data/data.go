@@ -4,7 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"regexp"
 	"time"
+)
+
+var (
+	ShortTextRX = regexp.MustCompile(`^[a-zA-Z0-9 \-_]{3,50}$`)
 )
 
 var (
