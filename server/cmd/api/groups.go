@@ -224,9 +224,9 @@ func readID(r *http.Request) (int64, error) {
 }
 
 func readToken(r *http.Request) (string, error) {
-	token := r.URL.Query().Get("token")
+	token := r.Header.Get("X-Group-Token")
 	if token == "" {
-		return "", errors.New("missing token parameter")
+		return "", errors.New("invalid token header")
 	}
 
 	return token, nil
