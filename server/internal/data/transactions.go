@@ -3,10 +3,10 @@ package data
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/lib/pq"
 	"github.com/soumikc1729/splitty/server/internal/validator"
 )
 
@@ -49,10 +49,15 @@ func (t *TransactionModel) Insert(transaction *Transaction, timeout time.Duratio
         VALUES ($1, $2, $3)
         RETURNING id, version`
 
+	paymentsJSON, err := json.Marshal(transaction.Payments)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	args := []interface{}{transaction.Title, pq.Array(transaction.Payments), transaction.GroupID}
+	args := []interface{}{transaction.Title, paymentsJSON, transaction.GroupID}
 
 	return t.DB.QueryRowContext(ctx, query, args...).Scan(&transaction.ID, &transaction.Version)
 }
@@ -77,12 +82,12 @@ func (t *TransactionModel) GetAllAfterID(id int64, groupID int64, timeout time.D
 
 	for rows.Next() {
 		var transaction Transaction
-		var payments []Payment
+		var paymentsJSON []byte
 
 		err := rows.Scan(
 			&transaction.ID,
 			&transaction.Title,
-			pq.Array(&payments),
+			&paymentsJSON,
 			&transaction.GroupID,
 			&transaction.Version,
 		)
@@ -91,7 +96,10 @@ func (t *TransactionModel) GetAllAfterID(id int64, groupID int64, timeout time.D
 			return nil, err
 		}
 
-		transaction.Payments = payments
+		if err = json.Unmarshal(paymentsJSON, &transaction.Payments); err != nil {
+			return nil, err
+		}
+
 		transactions = append(transactions, transaction)
 	}
 
@@ -109,12 +117,17 @@ func (t *TransactionModel) Update(transaction *Transaction, timeout time.Duratio
         WHERE id = $3 AND group_id = $4 AND version = $5
         RETURNING version`
 
+	paymentsJSON, err := json.Marshal(transaction.Payments)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	args := []interface{}{transaction.Title, pq.Array(transaction.Payments), transaction.ID, transaction.GroupID, transaction.Version}
+	args := []interface{}{transaction.Title, paymentsJSON, transaction.ID, transaction.GroupID, transaction.Version}
 
-	err := t.DB.QueryRowContext(ctx, query, args...).Scan(&transaction.Version)
+	err = t.DB.QueryRowContext(ctx, query, args...).Scan(&transaction.Version)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return ErrEditConflict
