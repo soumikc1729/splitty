@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -60,6 +61,36 @@ func (t *TransactionModel) Insert(transaction *Transaction, timeout time.Duratio
 	args := []interface{}{transaction.Title, paymentsJSON, transaction.GroupID}
 
 	return t.DB.QueryRowContext(ctx, query, args...).Scan(&transaction.ID, &transaction.Version)
+}
+
+func (t *TransactionModel) Get(id int64, groupID int64, timeout time.Duration) (*Transaction, error) {
+	query := `
+		SELECT id, title, payments, group_id, version
+		FROM transactions
+		WHERE id = $1 AND group_id = $2`
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	row := t.DB.QueryRowContext(ctx, query, id, groupID)
+	var transaction Transaction
+	var paymentsJSON []byte
+
+	err := row.Scan(&transaction.ID, &transaction.Title, &paymentsJSON, &transaction.GroupID, &transaction.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	if err = json.Unmarshal(paymentsJSON, &transaction.Payments); err != nil {
+		return nil, err
+	}
+
+	return &transaction, nil
 }
 
 func (t *TransactionModel) GetAllAfterID(id int64, groupID int64, timeout time.Duration) (*[]Transaction, error) {
@@ -157,7 +188,7 @@ func (t *TransactionModel) Delete(id int64, groupID int64, timeout time.Duration
 	}
 
 	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		return ErrRecordNotFound
 	}
 
 	return nil

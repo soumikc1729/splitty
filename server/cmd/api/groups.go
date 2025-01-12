@@ -64,7 +64,7 @@ func (app *App) UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
 	group := app.ContextGetGroup(r)
 
 	var input struct {
-		Name  *string  `json:"name"`
+		Name  string   `json:"name"`
 		Users []string `json:"users"`
 	}
 
@@ -75,22 +75,18 @@ func (app *App) UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
 
 	v := validator.New()
 
-	if input.Name != nil {
-		group.Name = *input.Name
+	group.Name = input.Name
+
+	for _, user := range group.Users {
+		v.Check(validator.In(user, input.Users...), "users", fmt.Sprintf("cannot remove user '%s'", user))
 	}
 
-	if input.Users != nil {
-		for _, user := range group.Users {
-			v.Check(validator.In(user, input.Users...), "users", fmt.Sprintf("cannot remove user '%s'", user))
-		}
-
-		if !v.Valid() {
-			app.FailedValidationResponse(w, r, v.Errors)
-			return
-		}
-
-		group.Users = input.Users
+	if !v.Valid() {
+		app.FailedValidationResponse(w, r, v.Errors)
+		return
 	}
+
+	group.Users = input.Users
 
 	if data.ValidateGroup(v, group); !v.Valid() {
 		app.FailedValidationResponse(w, r, v.Errors)
@@ -119,12 +115,7 @@ func (app *App) DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := app.Data.Groups.Delete(group.ID, group.Token, app.Config.Data.QueryTimeout)
 	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.NotFoundResponse(w, r)
-		default:
-			app.ServerErrorResponse(w, r, err)
-		}
+		app.DataErrorResponse(w, r, err)
 		return
 	}
 

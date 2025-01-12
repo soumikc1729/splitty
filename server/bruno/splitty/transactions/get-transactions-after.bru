@@ -1,0 +1,19 @@
+meta {
+  name: get-transactions-after
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:4000/v1/groups/8/transactions?after=8
+  body: none
+  auth: none
+}
+
+params:query {
+  after: 8
+}
+
+headers {
+  X-Group-Token: XC3M602VI
+}

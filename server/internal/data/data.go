@@ -27,7 +27,9 @@ type Config struct {
 }
 
 type Data struct {
-	Groups GroupModel
+	DB           *sql.DB
+	Groups       GroupModel
+	Transactions TransactionModel
 }
 
 func New(cfg *Config) (*Data, error) {
@@ -37,7 +39,9 @@ func New(cfg *Config) (*Data, error) {
 	}
 
 	data := Data{
-		Groups: GroupModel{DB: db},
+		DB:           db,
+		Groups:       GroupModel{DB: db},
+		Transactions: TransactionModel{DB: db},
 	}
 
 	return &data, nil

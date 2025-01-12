@@ -1,17 +1,20 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/soumikc1729/splitty/server/internal/data"
 	"github.com/soumikc1729/splitty/server/internal/util"
 )
 
-func (app *App) LogError(r *http.Request, err error) {
-	app.Logger.Err(err).Str("request_method", r.Method).Str("request_url", r.URL.String()).Msg("an error occurred")
+func (app *App) LogError(r *http.Request, err interface{}) {
+	app.Logger.Error().Interface("error", err).Str("request_method", r.Method).Str("request_url", r.URL.String()).Msg("an error occurred")
 }
 
 func (app *App) ErrorResponse(w http.ResponseWriter, r *http.Request, status int, message interface{}) {
+	app.LogError(r, message)
 	env := util.Envelope{"error": message}
 	err := util.WriteJSON(w, status, env, nil)
 	if err != nil {
@@ -43,4 +46,13 @@ func (app *App) ServerErrorResponse(w http.ResponseWriter, r *http.Request, err 
 
 func (app *App) EditConflictResponse(w http.ResponseWriter, r *http.Request) {
 	app.ErrorResponse(w, r, http.StatusConflict, "unable to update the record due to an edit conflict, please try again")
+}
+
+func (app *App) DataErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, data.ErrRecordNotFound):
+		app.NotFoundResponse(w, r)
+	default:
+		app.ServerErrorResponse(w, r, err)
+	}
 }

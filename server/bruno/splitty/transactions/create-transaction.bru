@@ -1,0 +1,31 @@
+meta {
+  name: create-transaction
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:4000/v1/groups/8/transactions
+  body: json
+  auth: none
+}
+
+headers {
+  X-Group-Token: XC3M602VI
+}
+
+body:json {
+  {
+    "title": "flight",
+    "payments": [
+      {
+        "amount": 100,
+        "payer": "Soumik"
+      },
+      {
+        "amount": -100,
+        "payer": "Paulomi"
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+meta {
+  name: delete-transaction
+  type: http
+  seq: 4
+}
+
+delete {
+  url: http://localhost:4000/v1/groups/8/transactions/10
+  body: none
+  auth: none
+}
+
+headers {
+  X-Group-Token: XC3M602VI
+}
