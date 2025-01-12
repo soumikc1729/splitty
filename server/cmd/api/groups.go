@@ -4,9 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
-	"github.com/julienschmidt/httprouter"
 	"github.com/soumikc1729/splitty/server/internal/data"
 	"github.com/soumikc1729/splitty/server/internal/util"
 	"github.com/soumikc1729/splitty/server/internal/validator"
@@ -52,38 +50,9 @@ func (app *App) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) GetGroupHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := readID(r)
-	if err != nil {
-		app.BadRequestResponse(w, r, err)
-		return
-	}
+	group := app.ContextGetGroup(r)
 
-	token, err := readToken(r)
-	if err != nil {
-		app.BadRequestResponse(w, r, err)
-		return
-	}
-
-	v := validator.New()
-
-	if data.ValidateToken(v, token); !v.Valid() {
-		app.FailedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	group, err := app.Data.Groups.GetByIDAndToken(id, token, app.Config.Data.QueryTimeout)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.NotFoundResponse(w, r)
-		default:
-			app.ServerErrorResponse(w, r, err)
-		}
-		return
-	}
-
-	err = util.WriteJSON(w, http.StatusOK, util.Envelope{"group": group}, nil)
-	if err != nil {
+	if err := util.WriteJSON(w, http.StatusOK, util.Envelope{"group": group}, nil); err != nil {
 		app.ServerErrorResponse(w, r, err)
 		return
 	}
@@ -92,46 +61,19 @@ func (app *App) GetGroupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := readID(r)
-	if err != nil {
-		app.BadRequestResponse(w, r, err)
-		return
-	}
-
-	token, err := readToken(r)
-	if err != nil {
-		app.BadRequestResponse(w, r, err)
-		return
-	}
-
-	v := validator.New()
-
-	if data.ValidateToken(v, token); !v.Valid() {
-		app.FailedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	group, err := app.Data.Groups.GetByIDAndToken(id, token, app.Config.Data.QueryTimeout)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.NotFoundResponse(w, r)
-		default:
-			app.ServerErrorResponse(w, r, err)
-		}
-		return
-	}
+	group := app.ContextGetGroup(r)
 
 	var input struct {
 		Name  *string  `json:"name"`
 		Users []string `json:"users"`
 	}
 
-	err = util.ReadJSON(r, &input)
-	if err != nil {
+	if err := util.ReadJSON(r, &input); err != nil {
 		app.BadRequestResponse(w, r, err)
 		return
 	}
+
+	v := validator.New()
 
 	if input.Name != nil {
 		group.Name = *input.Name
@@ -155,8 +97,7 @@ func (app *App) UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.Data.Groups.Update(group, app.Config.Data.QueryTimeout)
-	if err != nil {
+	if err := app.Data.Groups.Update(group, app.Config.Data.QueryTimeout); err != nil {
 		switch {
 		case errors.Is(err, data.ErrEditConflict):
 			app.EditConflictResponse(w, r)
@@ -166,8 +107,7 @@ func (app *App) UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = util.WriteJSON(w, http.StatusOK, util.Envelope{"group": group}, nil)
-	if err != nil {
+	if err := util.WriteJSON(w, http.StatusOK, util.Envelope{"group": group}, nil); err != nil {
 		app.ServerErrorResponse(w, r, err)
 	}
 
@@ -175,26 +115,9 @@ func (app *App) UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := readID(r)
-	if err != nil {
-		app.BadRequestResponse(w, r, err)
-		return
-	}
+	group := app.ContextGetGroup(r)
 
-	token, err := readToken(r)
-	if err != nil {
-		app.BadRequestResponse(w, r, err)
-		return
-	}
-
-	v := validator.New()
-
-	if data.ValidateToken(v, token); !v.Valid() {
-		app.FailedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	err = app.Data.Groups.Delete(id, token, app.Config.Data.QueryTimeout)
+	err := app.Data.Groups.Delete(group.ID, group.Token, app.Config.Data.QueryTimeout)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -210,24 +133,5 @@ func (app *App) DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
 		app.ServerErrorResponse(w, r, err)
 	}
 
-	app.Logger.Info().Int64("id", id).Msg("deleted group")
-}
-
-func readID(r *http.Request) (int64, error) {
-	params := httprouter.ParamsFromContext(r.Context())
-	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
-	if err != nil || id < 1 {
-		return 0, errors.New("invalid id parameter")
-	}
-
-	return id, nil
-}
-
-func readToken(r *http.Request) (string, error) {
-	token := r.Header.Get("X-Group-Token")
-	if token == "" {
-		return "", errors.New("invalid token header")
-	}
-
-	return token, nil
+	app.Logger.Info().Int64("id", group.ID).Msg("deleted group")
 }
